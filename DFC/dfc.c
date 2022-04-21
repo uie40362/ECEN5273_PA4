@@ -16,30 +16,71 @@
 #define BUFSIZE 8192
 
 //structs
-struct split_file_details{
+struct split_file_lengths{
     int p1_length;
     int p2_length;
     int p3_length;
     int p4_length;
 };
 
+struct dfs {
+    int first_part;
+    int second_part;
+    char filename1[30];
+    char filename2[30];
+    int first_part_length;
+    int second_part_length;
+};
+
 //function prototypes
 int connect_via_ip(char * ip, int port);
 void md5sum(FILE * inFile, char * md5string);
-void split_file_into4(FILE * split_fp, struct split_file_details * splitFileDetails);
+void split_file_into4(FILE * split_fp, struct split_file_lengths * splitFileDetails);
 int determine_filesize(FILE * fp);
+void set_dfs_struct(int key, char * filename, struct split_file_lengths * fileLengths, struct dfs * dfs1, struct dfs * dfs2, struct dfs * dfs3, struct dfs * dfs4);
 
 
 int main(){
-    struct split_file_details file_part_lengths;
-    FILE * fp = fopen("mytext.txt", "r");
-    split_file_into4(fp, &file_part_lengths);
+    while (1) {
+        char command[50];
+        char *instr;
+        char *filename;
+        struct dfs dfs1, dfs2, dfs3, dfs4;
+        struct split_file_lengths fileLengths;
+
+        printf("List of commands:\nput [filename]\nget [filename]\ndelete [filename]\nls\nexit\n\nInput command:");
+        fgets(command, sizeof(command), stdin); //get input from user
+        command[strcspn(command, "\n")] = 0;    //remove trailing newline
+
+        instr = strtok(command, " ");   //determine command based on first word
+    }
+
+//    struct split_file_lengths fileLengths;
+//    FILE * fp = fopen("mytext.txt", "r");
+//    split_file_into4(fp, &fileLengths);
+
 }
 
 /*function to connect to dfs server given an ip and port*/
 int connect_via_ip(char * ip, int port){
     if (!port)
         port = 80;
+
+    /*convert ip to network byte order*/
+    struct in_addr ipaddr;
+    struct hostent * server;
+
+    int ip_valid = inet_aton(ip, &ipaddr);
+    if (!ip_valid){
+        printf("IP not valid");
+        exit(0);
+    }
+
+    server = gethostbyaddr((const void *)&ipaddr, sizeof(ipaddr), AF_INET);
+    if (server == NULL) {
+        fprintf(stderr,"ERROR, no such host as %s\n", ip);
+        exit(0);
+    }
 
     struct sockaddr_in serveraddr;
 
@@ -54,8 +95,8 @@ int connect_via_ip(char * ip, int port){
     /* build the server's Internet address */
     bzero((char *) &serveraddr, sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
-    bcopy(ip,
-          (char *)&serveraddr.sin_addr.s_addr, sizeof(ip));
+    bcopy(server->h_addr,
+          (char *)&serveraddr.sin_addr.s_addr, server->h_length);
     serveraddr.sin_port = htons(port);
 
     //connect to host server
@@ -84,7 +125,7 @@ void md5sum(FILE * inFile, char * md5string){
 }
 
 /*function to split file into 4 equal parts and stores in DFC dir to be sent to DFS*/
-void split_file_into4(FILE * split_fp, struct split_file_details * splitFileDetails){
+void split_file_into4(FILE * split_fp, struct split_file_lengths * splitFileDetails){
     int size, n;
     int bytes_read = 0;
     char buf[BUFSIZE];
@@ -142,4 +183,113 @@ int determine_filesize(FILE * fp){
     int size = ftell(fp);   //get size of file
     fseek(fp, 0, SEEK_SET);
     return size;
+}
+
+void set_dfs_struct(int key, char * filename, struct split_file_lengths * fileLengths, struct dfs * dfs1, struct dfs * dfs2, struct dfs * dfs3, struct dfs * dfs4){
+    switch(key){
+        case 0:
+            dfs1->first_part = 1;
+            dfs1->second_part = 2;
+            sprintf(dfs1->filename1, "%s.%d", filename, dfs1->first_part);
+            sprintf(dfs1->filename2, "%s.%d", filename, dfs1->second_part);
+            dfs1->first_part_length = fileLengths->p1_length;
+            dfs1->second_part_length = fileLengths->p2_length;
+            dfs2->first_part = 2;
+            dfs2->second_part = 3;
+            sprintf(dfs2->filename1, "%s.%d", filename, dfs2->first_part);
+            sprintf(dfs2->filename2, "%s.%d", filename, dfs2->second_part);
+            dfs2->first_part_length = fileLengths->p2_length;
+            dfs2->second_part_length = fileLengths->p3_length;
+            dfs3->first_part = 3;
+            dfs3->second_part = 4;
+            sprintf(dfs3->filename1, "%s.%d", filename, dfs3->first_part);
+            sprintf(dfs3->filename2, "%s.%d", filename, dfs3->second_part);
+            dfs3->first_part_length = fileLengths->p3_length;
+            dfs3->second_part_length = fileLengths->p4_length;
+            dfs4->first_part = 4;
+            dfs4->second_part = 1;
+            sprintf(dfs4->filename1, "%s.%d", filename, dfs4->first_part);
+            sprintf(dfs4->filename2, "%s.%d", filename, dfs4->second_part);
+            dfs4->first_part_length = fileLengths->p4_length;
+            dfs4->second_part_length = fileLengths->p1_length;
+            break;
+        case 1:
+            dfs1->first_part = 4;
+            dfs1->second_part = 1;
+            sprintf(dfs1->filename1, "%s.%d", filename, dfs1->first_part);
+            sprintf(dfs1->filename2, "%s.%d", filename, dfs1->second_part);
+            dfs1->first_part_length = fileLengths->p4_length;
+            dfs1->second_part_length = fileLengths->p1_length;
+            dfs2->first_part = 1;
+            dfs2->second_part = 2;
+            sprintf(dfs2->filename1, "%s.%d", filename, dfs2->first_part);
+            sprintf(dfs2->filename2, "%s.%d", filename, dfs2->second_part);
+            dfs2->first_part_length = fileLengths->p1_length;
+            dfs2->second_part_length = fileLengths->p2_length;
+            dfs3->first_part = 2;
+            dfs3->second_part = 3;
+            sprintf(dfs3->filename1, "%s.%d", filename, dfs3->first_part);
+            sprintf(dfs3->filename2, "%s.%d", filename, dfs3->second_part);
+            dfs3->first_part_length = fileLengths->p2_length;
+            dfs3->second_part_length = fileLengths->p3_length;
+            dfs4->first_part = 3;
+            dfs4->second_part = 4;
+            sprintf(dfs4->filename1, "%s.%d", filename, dfs4->first_part);
+            sprintf(dfs4->filename2, "%s.%d", filename, dfs4->second_part);
+            dfs4->first_part_length = fileLengths->p3_length;
+            dfs4->second_part_length = fileLengths->p4_length;
+            break;
+        case 2:
+            dfs1->first_part = 3;
+            dfs1->second_part = 4;
+            sprintf(dfs1->filename1, "%s.%d", filename, dfs1->first_part);
+            sprintf(dfs1->filename2, "%s.%d", filename, dfs1->second_part);
+            dfs1->first_part_length = fileLengths->p3_length;
+            dfs1->second_part_length = fileLengths->p4_length;
+            dfs2->first_part = 4;
+            dfs2->second_part = 1;
+            sprintf(dfs2->filename1, "%s.%d", filename, dfs2->first_part);
+            sprintf(dfs2->filename2, "%s.%d", filename, dfs2->second_part);
+            dfs2->first_part_length = fileLengths->p4_length;
+            dfs2->second_part_length = fileLengths->p1_length;
+            dfs3->first_part = 1;
+            dfs3->second_part = 2;
+            sprintf(dfs3->filename1, "%s.%d", filename, dfs3->first_part);
+            sprintf(dfs3->filename2, "%s.%d", filename, dfs3->second_part);
+            dfs3->first_part_length = fileLengths->p1_length;
+            dfs3->second_part_length = fileLengths->p2_length;
+            dfs4->first_part = 2;
+            dfs4->second_part = 3;
+            sprintf(dfs4->filename1, "%s.%d", filename, dfs4->first_part);
+            sprintf(dfs4->filename2, "%s.%d", filename, dfs4->second_part);
+            dfs4->first_part_length = fileLengths->p2_length;
+            dfs4->second_part_length = fileLengths->p3_length;
+            break;
+        case 3:
+            dfs1->first_part = 2;
+            dfs1->second_part = 3;
+            sprintf(dfs1->filename1, "%s.%d", filename, dfs1->first_part);
+            sprintf(dfs1->filename2, "%s.%d", filename, dfs1->second_part);
+            dfs1->first_part_length = fileLengths->p2_length;
+            dfs1->second_part_length = fileLengths->p3_length;
+            dfs2->first_part = 3;
+            dfs2->second_part = 4;
+            sprintf(dfs2->filename1, "%s.%d", filename, dfs2->first_part);
+            sprintf(dfs2->filename2, "%s.%d", filename, dfs2->second_part);
+            dfs2->first_part_length = fileLengths->p3_length;
+            dfs2->second_part_length = fileLengths->p4_length;
+            dfs3->first_part = 4;
+            dfs3->second_part = 1;
+            sprintf(dfs3->filename1, "%s.%d", filename, dfs3->first_part);
+            sprintf(dfs3->filename2, "%s.%d", filename, dfs3->second_part);
+            dfs3->first_part_length = fileLengths->p4_length;
+            dfs3->second_part_length = fileLengths->p1_length;
+            dfs4->first_part = 1;
+            dfs4->second_part = 2;
+            sprintf(dfs4->filename1, "%s.%d", filename, dfs4->first_part);
+            sprintf(dfs4->filename2, "%s.%d", filename, dfs4->second_part);
+            dfs4->first_part_length = fileLengths->p1_length;
+            dfs4->second_part_length = fileLengths->p2_length;
+            break;
+    }
 }
