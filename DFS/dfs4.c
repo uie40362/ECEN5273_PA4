@@ -12,3 +12,7 @@
 #include <signal.h>
 #include <time.h>
 #include <openssl/md5.h>
+
+int main(){
+
+}
