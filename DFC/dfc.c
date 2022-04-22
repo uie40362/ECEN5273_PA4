@@ -38,7 +38,7 @@ void md5sum(FILE * inFile, char * md5string);
 void split_file_into4(FILE * split_fp, struct split_file_lengths * splitFileDetails);
 int determine_filesize(FILE * fp);
 void set_dfs_struct(int key, char * filename, struct split_file_lengths * fileLengths, struct dfs * dfs1, struct dfs * dfs2, struct dfs * dfs3, struct dfs * dfs4);
-
+int sendto_dfsX(int sockfd, struct dfs * dfsx);
 
 int main(){
     while (1) {
@@ -185,6 +185,7 @@ int determine_filesize(FILE * fp){
     return size;
 }
 
+/*function to set dfs struct which will be used to send file parts*/
 void set_dfs_struct(int key, char * filename, struct split_file_lengths * fileLengths, struct dfs * dfs1, struct dfs * dfs2, struct dfs * dfs3, struct dfs * dfs4){
     switch(key){
         case 0:
@@ -292,4 +293,55 @@ void set_dfs_struct(int key, char * filename, struct split_file_lengths * fileLe
             dfs4->second_part_length = fileLengths->p2_length;
             break;
     }
+}
+
+/*function send file pair to dfs*/
+int sendto_dfsX(int sockfd, struct dfs * dfsx){
+    char buf[BUFSIZE];
+
+    //send filename for first pair
+    strcpy(buf, dfsx->filename1);
+    send(sockfd, buf, BUFSIZE, 0);
+
+    //send filesize for first pair
+    bzero(buf, BUFSIZE);
+    sprintf(buf, "%d", dfsx->first_part_length);
+    send(sockfd, buf, BUFSIZE, 0);
+
+    //send first file part
+    char part_name[3];
+    int part_size, n;
+    sprintf(part_name, "P%d", dfsx->first_part);
+    FILE * fp1 = fopen(part_name, "r");
+    part_size = dfsx->first_part_length;
+
+    while (part_size){
+        bzero(buf, BUFSIZE);
+        n = fread(buf, sizeof(char), BUFSIZE, fp1);
+        send(sockfd, buf, n, 0);
+        part_size -= n;
+    }
+    fclose(fp1);
+
+    //send filename for second pair
+    strcpy(buf, dfsx->filename2);
+    send(sockfd, buf, BUFSIZE, 0);
+
+    //send filesize for second pair
+    bzero(buf, BUFSIZE);
+    sprintf(buf, "%d", dfsx->second_part_length);
+    send(sockfd, buf, BUFSIZE, 0);
+
+    //send second file part
+    sprintf(part_name, "P%d", dfsx->second_part);
+    FILE * fp2 = fopen(part_name, "r");
+    part_size = dfsx->second_part_length;
+
+    while (part_size){
+        bzero(buf, BUFSIZE);
+        n = fread(buf, sizeof(char), BUFSIZE, fp2);
+        send(sockfd, buf, n, 0);
+        part_size -= n;
+    }
+    fclose(fp2);
 }
