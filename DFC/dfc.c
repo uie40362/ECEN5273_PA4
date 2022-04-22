@@ -39,6 +39,7 @@ void split_file_into4(FILE * split_fp, struct split_file_lengths * splitFileDeta
 int determine_filesize(FILE * fp);
 void set_dfs_struct(int key, char * filename, struct split_file_lengths * fileLengths, struct dfs * dfs1, struct dfs * dfs2, struct dfs * dfs3, struct dfs * dfs4);
 int sendto_dfsX(int sockfd, struct dfs * dfsx);
+void parse_user_and_pw(char * username, char * pw);
 
 int main(){
     while (1) {
@@ -48,11 +49,14 @@ int main(){
         struct dfs dfs1, dfs2, dfs3, dfs4;
         struct split_file_lengths fileLengths;
 
-        printf("List of commands:\nput [filename]\nget [filename]\ndelete [filename]\nls\nexit\n\nInput command:");
+        printf("List of commands:\nput [filename]\nget [filename]\nls\n\nInput command:");
         fgets(command, sizeof(command), stdin); //get input from user
         command[strcspn(command, "\n")] = 0;    //remove trailing newline
 
         instr = strtok(command, " ");   //determine command based on first word
+
+        //send authentication details to server
+
     }
 
 //    struct split_file_lengths fileLengths;
@@ -345,4 +349,30 @@ int sendto_dfsX(int sockfd, struct dfs * dfsx){
     }
     fclose(fp2);
     return 1;
+}
+
+/*function to parse username and pw - arg as char arr[]*/
+void parse_user_and_pw(char * username, char * pw){
+    char buf[1024];
+    char * line, user, pass;
+
+    FILE * fp = fopen("dfc.conf", "r");
+    fread(buf, sizeof(char), sizeof(buf), fp);
+    line = strtok(buf, "\n");
+
+    while(line){
+        if (strstr(line, "Username:")){
+            user = strchr(line, ':');
+            user += 1;
+            sprintf(username, "%s", user);
+        }
+
+        if(strstr(line, "Password:")){
+            pass = strchr(line, ':');
+            pass += 1;
+            sprintf(pw, "%s", pass);
+        }
+        line = strtok(NULL, "\n");
+    }
+    fclose(fp);
 }
