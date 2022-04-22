@@ -344,4 +344,5 @@ int sendto_dfsX(int sockfd, struct dfs * dfsx){
         part_size -= n;
     }
     fclose(fp2);
+    return 1;
 }
