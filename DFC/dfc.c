@@ -40,8 +40,16 @@ int determine_filesize(FILE * fp);
 void set_dfs_struct(int key, char * filename, struct split_file_lengths * fileLengths, struct dfs * dfs1, struct dfs * dfs2, struct dfs * dfs3, struct dfs * dfs4);
 int sendto_dfsX(int sockfd, struct dfs * dfsx);
 void parse_user_and_pw(char * username, char * pw);
+void parse_dfs_ip_port(char * ip, char * port1, char * port2, char * port3, char * port4);
 
-int main(){
+int main(int argc, char **argv){
+    char dfs1_port[10];
+    char dfs2_port2[10];
+    char dfs3_port3[10];
+    char dfs4_port4[10];
+    char dfs_ip[32]
+
+
     while (1) {
         char command[50];
         char *instr;
@@ -354,7 +362,9 @@ int sendto_dfsX(int sockfd, struct dfs * dfsx){
 /*function to parse username and pw - arg as char arr[]*/
 void parse_user_and_pw(char * username, char * pw){
     char buf[1024];
-    char * line, user, pass;
+    char * line;
+    char * user;
+    char * pass;
 
     FILE * fp = fopen("dfc.conf", "r");
     fread(buf, sizeof(char), sizeof(buf), fp);
@@ -374,5 +384,50 @@ void parse_user_and_pw(char * username, char * pw){
         }
         line = strtok(NULL, "\n");
     }
+    fclose(fp);
+}
+
+void parse_dfs_ip_port(char * ip, char * port1, char * port2, char * port3, char * port4){
+    char buf[1024];
+    char * line;
+    char * temp_ip[32];
+    char * temp;
+
+    FILE * fp = fopen("dfc.conf", "r");
+    fread(buf, sizeof(char), sizeof(buf), fp);
+    line = strtok(buf, "\n");
+
+    //determine ip
+    temp = strstr(line, "DFS1");
+    temp += 5;
+    strcpy(temp_ip, temp);
+    temp_ip[strcspn(temp_ip, ':')] = 0;
+    strcpy(ip, temp_ip);
+
+     //determine port1
+    temp = strchr(line, ':');
+    temp += 1;
+    strcpy(port1, temp);
+
+    //determine remaining ports
+    for (int i = 0; i<3; i++){
+        line = strtok(NULL, "\n");
+        temp = strchr(line, ':');
+        temp += 1;
+
+        switch (i) {
+            case 0:
+                strcpy(port2, temp);
+                break;
+            case 1:
+                strcpy(port3, temp);
+                break;
+            case 2:
+                strcpy(port4, temp);
+                break;
+        }
+
+    }
+
     fclose(fp);
 }
