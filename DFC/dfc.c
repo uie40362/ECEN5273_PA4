@@ -34,7 +34,7 @@ struct dfs {
 
 //function prototypes
 int connect_via_ip(char * ip, int port);
-void md5sum(FILE * inFile, char * md5string);
+int md5sum(FILE * inFile);
 void split_file_into4(FILE * split_fp, struct split_file_lengths * splitFileDetails);
 int determine_filesize(FILE * fp);
 void set_dfs_struct(int key, char * filename, struct split_file_lengths * fileLengths, struct dfs * dfs1, struct dfs * dfs2, struct dfs * dfs3, struct dfs * dfs4);
@@ -42,15 +42,54 @@ int sendto_dfsX(int sockfd, struct dfs * dfsx);
 void parse_user_and_pw(char * username, char * pw);
 void parse_dfs_ip_port(char * ip, char * port1, char * port2, char * port3, char * port4);
 
-int main(int argc, char **argv){
+int main(){
     char dfs1_port[10];
-    char dfs2_port2[10];
-    char dfs3_port3[10];
-    char dfs4_port4[10];
-    char dfs_ip[32]
+    char dfs2_port[10];
+    char dfs3_port[10];
+    char dfs4_port[10];
+    char dfs_ip[32];
 
+    //parse to get dfs ip and port numbers
+    parse_dfs_ip_port(dfs_ip, dfs1_port, dfs2_port, dfs3_port, dfs4_port);
 
+    //convert ports from char to int
+    int dfs1_port_int = atoi(dfs1_port);
+    int dfs2_port_int = atoi(dfs2_port);
+    int dfs3_port_int = atoi(dfs3_port);
+    int dfs4_port_int = atoi(dfs4_port);
+
+    //connecting to the four dfs servers
+    int dfs1_sockfd = connect_via_ip(dfs_ip, dfs1_port_int);
+    if (dfs1_sockfd<0){
+        //handle for unsuccessful connection to server
+        fprintf(stderr, "Unable to connect to DFS1\n");
+        exit(0);
+    }
+
+    int dfs2_sockfd = connect_via_ip(dfs_ip, dfs2_port_int);
+    if (dfs2_sockfd<0){
+        //handle for unsuccessful connection to server
+        fprintf(stderr, "Unable to connect to DFS1\n");
+        exit(0);
+    }
+
+    int dfs3_sockfd = connect_via_ip(dfs_ip, dfs3_port_int);
+    if (dfs3_sockfd<0){
+        //handle for unsuccessful connection to server
+        fprintf(stderr, "Unable to connect to DFS1\n");
+        exit(0);
+    }
+
+    int dfs4_sockfd = connect_via_ip(dfs_ip, dfs4_port_int);
+    if (dfs4_sockfd<0){
+        //handle for unsuccessful connection to server
+        fprintf(stderr, "Unable to connect to DFS1\n");
+        exit(0);
+    }
+
+    //main while loop
     while (1) {
+        char buf[BUFSIZE];
         char command[50];
         char *instr;
         char *filename;
@@ -62,9 +101,70 @@ int main(int argc, char **argv){
         command[strcspn(command, "\n")] = 0;    //remove trailing newline
 
         instr = strtok(command, " ");   //determine command based on first word
+        /*put command*/
+        if(strcmp(instr, "put")==0){
+            filename = strtok(NULL, " ");  //extract filename
+            //handle if no filename provided
+            if (filename == NULL) {
+                printf("No filename provided. Press ENTER to continue\n");
+                getchar();
+                continue;
+            }
+            /*process if file is in system*/
+            if( access( filename, F_OK ) == 0 ) {
+                //file present
+                //do nothing
+            }
+            else {
+                // file doesn't exist
+                printf("errno %d\n", errno);
+                perror("");
+                printf("Press ENTER to continue\n");
+                getchar();
+                continue;
+            }
 
-        //send authentication details to server
+            //send username and pw to server for checking
+            char username[30];
+            char password[30];
+            parse_user_and_pw(username, password);
+            //use dfs1 as master server for authentication
+            send(dfs1_sockfd, username, sizeof(username), 0);
+            send(dfs1_sockfd, password, sizeof(password), 0);
+            //receive OK from server
+            recv(dfs1_sockfd, buf, sizeof(buf), 0);
+            if (strcmp(buf, "OK")!=0){
+                printf("User details are incorrect. Press ENTER to continue\n");
+                getchar();
+                continue;
+            }
 
+            //send put instruction
+            send(dfs1_sockfd, instr, sizeof(instr), 0);
+            send(dfs2_sockfd, instr, sizeof(instr), 0);
+            send(dfs3_sockfd, instr, sizeof(instr), 0);
+            send(dfs4_sockfd, instr, sizeof(instr), 0);
+
+            //calculate md5sum of file to send
+            FILE * fp = fopen(filename, "r");
+            int md5 = md5sum(fp);
+            int key = md5 % 4;
+
+            //split file into four
+            split_file_into4(fp, &fileLengths);
+            fclose(fp);
+
+            //set dfs structs
+            set_dfs_struct(key, filename, &fileLengths, &dfs1, &dfs2, &dfs3, &dfs4);
+
+            //send file parts to each dfs server
+            sendto_dfsX(dfs1_sockfd, &dfs1);
+            sendto_dfsX(dfs2_sockfd, &dfs2);
+            sendto_dfsX(dfs3_sockfd, &dfs3);
+            sendto_dfsX(dfs4_sockfd, &dfs4);
+
+
+        }
     }
 
 //    struct split_file_lengths fileLengths;
@@ -121,7 +221,7 @@ int connect_via_ip(char * ip, int port){
 
 /*function to convert file into md5 hash
  * md5string argument is array with size 33*/
-void md5sum(FILE * inFile, char * md5string){
+int md5sum(FILE * inFile){
     MD5_CTX c;
     unsigned long bytes;
     char data[1024];
@@ -131,9 +231,8 @@ void md5sum(FILE * inFile, char * md5string){
     while ((bytes = fread (data, 1, 1024, inFile)) != 0)
         MD5_Update (&c, data, bytes);
     MD5_Final(out, &c);
-//    char md5string[33];
-    for(int i = 0; i < 16; ++i)
-        sprintf(&md5string[i*2], "%02x", (unsigned int)out[i]);
+    int md5_int = atoi((const char *)out);
+    return md5_int;
 }
 
 /*function to split file into 4 equal parts and stores in DFC dir to be sent to DFS*/
@@ -368,7 +467,7 @@ void parse_user_and_pw(char * username, char * pw){
 
     FILE * fp = fopen("dfc.conf", "r");
     fread(buf, sizeof(char), sizeof(buf), fp);
-    line = strtok(buf, "\n");
+    line = strtok(buf, "\r\n");
 
     while(line){
         if (strstr(line, "Username:")){
@@ -382,7 +481,7 @@ void parse_user_and_pw(char * username, char * pw){
             pass += 1;
             sprintf(pw, "%s", pass);
         }
-        line = strtok(NULL, "\n");
+        line = strtok(NULL, "\r\n");
     }
     fclose(fp);
 }
@@ -390,18 +489,18 @@ void parse_user_and_pw(char * username, char * pw){
 void parse_dfs_ip_port(char * ip, char * port1, char * port2, char * port3, char * port4){
     char buf[1024];
     char * line;
-    char * temp_ip[32];
+    char temp_ip[32];
     char * temp;
 
     FILE * fp = fopen("dfc.conf", "r");
     fread(buf, sizeof(char), sizeof(buf), fp);
-    line = strtok(buf, "\n");
+    line = strtok(buf, "\r\n");
 
     //determine ip
     temp = strstr(line, "DFS1");
     temp += 5;
     strcpy(temp_ip, temp);
-    temp_ip[strcspn(temp_ip, ':')] = 0;
+    temp_ip[strcspn(temp_ip, ":")] = 0;
     strcpy(ip, temp_ip);
 
      //determine port1
@@ -411,7 +510,7 @@ void parse_dfs_ip_port(char * ip, char * port1, char * port2, char * port3, char
 
     //determine remaining ports
     for (int i = 0; i<3; i++){
-        line = strtok(NULL, "\n");
+        line = strtok(NULL, "\r\n");
         temp = strchr(line, ':');
         temp += 1;
 
