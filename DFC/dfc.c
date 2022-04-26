@@ -34,7 +34,7 @@ struct dfs {
 
 //function prototypes
 int connect_via_ip(char * ip, int port);
-int md5sum(FILE * inFile);
+long long int md5sum(FILE * inFile);
 void split_file_into4(FILE * split_fp, struct split_file_lengths * splitFileDetails);
 int determine_filesize(FILE * fp);
 void set_dfs_struct(int key, char * filename, struct split_file_lengths * fileLengths, struct dfs * dfs1, struct dfs * dfs2, struct dfs * dfs3, struct dfs * dfs4);
@@ -43,6 +43,7 @@ void parse_user_and_pw(char * username, char * pw);
 void parse_dfs_ip_port(char * ip, char * port1, char * port2, char * port3, char * port4);
 
 int main(){
+    setbuf(stdout, 0);
     char dfs1_port[10];
     char dfs2_port[10];
     char dfs3_port[10];
@@ -140,14 +141,15 @@ int main(){
             }
 
             //send put instruction
-            send(dfs1_sockfd, instr, sizeof(instr), 0);
-            send(dfs2_sockfd, instr, sizeof(instr), 0);
-            send(dfs3_sockfd, instr, sizeof(instr), 0);
-            send(dfs4_sockfd, instr, sizeof(instr), 0);
+            strcpy(buf, instr);
+            send(dfs1_sockfd, buf, strlen(buf), 0);
+            send(dfs2_sockfd, buf, strlen(buf), 0);
+            send(dfs3_sockfd, buf, strlen(buf), 0);
+            send(dfs4_sockfd, buf, strlen(buf), 0);
 
             //calculate md5sum of file to send
             FILE * fp = fopen(filename, "r");
-            int md5 = md5sum(fp);
+            long long int md5 = md5sum(fp);
             int key = md5 % 4;
 
             //split file into four
@@ -163,6 +165,32 @@ int main(){
             sendto_dfsX(dfs3_sockfd, &dfs3);
             sendto_dfsX(dfs4_sockfd, &dfs4);
 
+            printf("Finished sending file parts to DFSes");
+        }
+
+        if (strcmp(instr, "get")==0){
+            /*get instruction*/
+            filename = strtok(NULL, " ");  //extract filename
+            //handle if no filename provided
+            if (filename == NULL) {
+                printf("No filename provided. Press ENTER to continue\n");
+                getchar();
+                continue;
+            }
+            //send username and pw to server for checking
+            char username[30];
+            char password[30];
+            parse_user_and_pw(username, password);
+            //use dfs1 as master server for authentication
+            send(dfs1_sockfd, username, sizeof(username), 0);
+            send(dfs1_sockfd, password, sizeof(password), 0);
+            //receive OK from server
+            recv(dfs1_sockfd, buf, sizeof(buf), 0);
+            if (strcmp(buf, "OK")!=0){
+                printf("User details are incorrect. Press ENTER to continue\n");
+                getchar();
+                continue;
+            }
 
         }
     }
@@ -221,7 +249,7 @@ int connect_via_ip(char * ip, int port){
 
 /*function to convert file into md5 hash
  * md5string argument is array with size 33*/
-int md5sum(FILE * inFile){
+long long int md5sum(FILE * inFile){
     MD5_CTX c;
     unsigned long bytes;
     char data[1024];
@@ -231,8 +259,11 @@ int md5sum(FILE * inFile){
     while ((bytes = fread (data, 1, 1024, inFile)) != 0)
         MD5_Update (&c, data, bytes);
     MD5_Final(out, &c);
-    int md5_int = atoi((const char *)out);
-    return md5_int;
+    char md5string[33];
+    for(int i = 0; i < 16; ++i)
+        sprintf(&md5string[i*2], "%02x", (unsigned int)out[i]);
+    long long int number = strtoll(md5string, NULL, 16);
+    return number;
 }
 
 /*function to split file into 4 equal parts and stores in DFC dir to be sent to DFS*/
@@ -411,6 +442,7 @@ int sendto_dfsX(int sockfd, struct dfs * dfsx){
     char buf[BUFSIZE];
 
     //send filename for first pair
+    bzero(buf, BUFSIZE);
     strcpy(buf, dfsx->filename1);
     send(sockfd, buf, BUFSIZE, 0);
 
@@ -426,15 +458,21 @@ int sendto_dfsX(int sockfd, struct dfs * dfsx){
     FILE * fp1 = fopen(part_name, "r");
     part_size = dfsx->first_part_length;
 
+    int send_size;
     while (part_size){
+        if (part_size<BUFSIZE)
+            send_size = part_size;
+        else
+            send_size = BUFSIZE;
         bzero(buf, BUFSIZE);
-        n = fread(buf, sizeof(char), BUFSIZE, fp1);
+        n = fread(buf, sizeof(char), send_size, fp1);
         send(sockfd, buf, n, 0);
         part_size -= n;
     }
     fclose(fp1);
 
     //send filename for second pair
+    bzero(buf, BUFSIZE);
     strcpy(buf, dfsx->filename2);
     send(sockfd, buf, BUFSIZE, 0);
 
@@ -449,8 +487,12 @@ int sendto_dfsX(int sockfd, struct dfs * dfsx){
     part_size = dfsx->second_part_length;
 
     while (part_size){
+        if (part_size<BUFSIZE)
+            send_size = part_size;
+        else
+            send_size = BUFSIZE;
         bzero(buf, BUFSIZE);
-        n = fread(buf, sizeof(char), BUFSIZE, fp2);
+        n = fread(buf, sizeof(char), send_size, fp2);
         send(sockfd, buf, n, 0);
         part_size -= n;
     }
@@ -472,13 +514,13 @@ void parse_user_and_pw(char * username, char * pw){
     while(line){
         if (strstr(line, "Username:")){
             user = strchr(line, ':');
-            user += 1;
+            user += 2;
             sprintf(username, "%s", user);
         }
 
         if(strstr(line, "Password:")){
             pass = strchr(line, ':');
-            pass += 1;
+            pass += 2;
             sprintf(pw, "%s", pass);
         }
         line = strtok(NULL, "\r\n");
@@ -493,7 +535,8 @@ void parse_dfs_ip_port(char * ip, char * port1, char * port2, char * port3, char
     char * temp;
 
     FILE * fp = fopen("dfc.conf", "r");
-    fread(buf, sizeof(char), sizeof(buf), fp);
+    int n = determine_filesize(fp);
+    fread(buf, sizeof(char), n, fp);
     line = strtok(buf, "\r\n");
 
     //determine ip
