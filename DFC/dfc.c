@@ -192,6 +192,72 @@ int main(){
                 continue;
             }
 
+            //send get instruction
+            strcpy(buf, instr);
+            send(dfs1_sockfd, buf, strlen(buf), 0);
+            send(dfs2_sockfd, buf, strlen(buf), 0);
+            send(dfs3_sockfd, buf, strlen(buf), 0);
+            send(dfs4_sockfd, buf, strlen(buf), 0);
+
+            //send filename
+            strcpy(buf, filename);
+            send(dfs1_sockfd, buf, strlen(buf), 0);
+            send(dfs2_sockfd, buf, strlen(buf), 0);
+            send(dfs3_sockfd, buf, strlen(buf), 0);
+            send(dfs4_sockfd, buf, strlen(buf), 0);
+
+            /*setup select function*/
+            fd_set select_fds;
+            struct timeval timeout;
+
+            FD_ZERO(&select_fds);
+            FD_SET(dfs1_sockfd, &select_fds);
+            timeout.tv_sec = 5;
+            timeout.tv_usec = 0;
+            //wait for ack otherwise timeout
+            if (select(32, &select_fds, 0, 0, &timeout) == 0){
+                printf("Timeout on receiving ACK\n");
+                continue;
+            }
+
+            FD_ZERO(&select_fds);
+            FD_SET(dfs2_sockfd, &select_fds);
+            timeout.tv_sec = 5;
+            timeout.tv_usec = 0;
+            //wait for ack otherwise timeout
+            if (select(32, &select_fds, 0, 0, &timeout) == 0){
+                printf("Timeout on receiving ACK\n");
+                continue;
+            }
+            FD_ZERO(&select_fds);
+            FD_SET(dfs3_sockfd, &select_fds);
+            timeout.tv_sec = 5;
+            timeout.tv_usec = 0;
+            //wait for ack otherwise timeout
+            if (select(32, &select_fds, 0, 0, &timeout) == 0){
+                printf("Timeout on receiving ACK\n");
+                continue;
+            }
+
+            FD_ZERO(&select_fds);
+            FD_SET(dfs4_sockfd, &select_fds);
+            timeout.tv_sec = 5;
+            timeout.tv_usec = 0;
+            //wait for ack otherwise timeout
+            if (select(32, &select_fds, 0, 0, &timeout) == 0){
+                printf("Timeout on receiving ACK\n");
+                continue;
+            }
+
+            //receive ack from server if file is present and part number (e.g. ACK 1)
+            recv(dfs1_sockfd, buf, BUFSIZE, 0);
+            recv(dfs2_sockfd, buf, BUFSIZE, 0);
+            recv(dfs3_sockfd, buf, BUFSIZE, 0);
+            recv(dfs4_sockfd, buf, BUFSIZE, 0);
+
+            //receive filesize of parts available
+
+
         }
     }
 
