@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.10)
+project(Assignment_4 C)
+
+set(CMAKE_C_STANDARD 11)
+include_directories(/usr/include/openssl/)
+link_libraries(ssl)
+link_libraries(crypto)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+
+add_executable(Assignment_4 main.c)
+add_executable(dfc DFC/dfc.c)
+add_executable(dfs1 DFS/dfs1.c)
+add_executable(dfs2 DFS/dfs2.c)
+add_executable(dfs3 DFS/dfs3.c)
+add_executable(dfs4 DFS/dfs4.c)

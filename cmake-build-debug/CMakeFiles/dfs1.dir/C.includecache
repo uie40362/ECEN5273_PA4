@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/mnt/c/Users/goshe/Personal/NUS Matters/Y3S2/ECEN5273/Assignment/Assignment 4/DFS/dfs1.c
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+strings.h
+-
+unistd.h
+-
+sys/socket.h
+-
+netdb.h
+-
+netinet/in.h
+-
+arpa/inet.h
+-
+pthread.h
+-
+errno.h
+-
+signal.h
+-
+time.h
+-
+openssl/md5.h
+-
+

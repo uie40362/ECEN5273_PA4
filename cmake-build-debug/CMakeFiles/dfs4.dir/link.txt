@@ -1,0 +1,1 @@
+/usr/bin/cc  -pthread -g   CMakeFiles/dfs4.dir/DFS/dfs4.c.o  -o dfs4 -lssl -lcrypto 

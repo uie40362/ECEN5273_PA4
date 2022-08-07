@@ -1,0 +1,1 @@
+/usr/bin/cc  -pthread -g   CMakeFiles/dfc.dir/DFC/dfc.c.o  -o dfc -lssl -lcrypto 

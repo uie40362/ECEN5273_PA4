@@ -1,0 +1,1 @@
+/usr/bin/cc  -pthread -g   CMakeFiles/Assignment_4.dir/main.c.o  -o Assignment_4 -lssl -lcrypto 

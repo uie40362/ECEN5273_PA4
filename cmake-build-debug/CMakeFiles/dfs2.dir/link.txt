@@ -1,0 +1,1 @@
+/usr/bin/cc  -pthread -g   CMakeFiles/dfs2.dir/DFS/dfs2.c.o  -o dfs2 -lssl -lcrypto 

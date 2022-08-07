@@ -1,0 +1,1 @@
+/usr/bin/cc  -pthread -g   CMakeFiles/dfs3.dir/DFS/dfs3.c.o  -o dfs3 -lssl -lcrypto 

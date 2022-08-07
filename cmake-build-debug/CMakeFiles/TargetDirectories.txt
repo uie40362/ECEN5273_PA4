@@ -1,0 +1,8 @@
+/mnt/c/Users/goshe/Personal/NUS Matters/Y3S2/ECEN5273/Assignment/Assignment 4/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/mnt/c/Users/goshe/Personal/NUS Matters/Y3S2/ECEN5273/Assignment/Assignment 4/cmake-build-debug/CMakeFiles/Assignment_4.dir
+/mnt/c/Users/goshe/Personal/NUS Matters/Y3S2/ECEN5273/Assignment/Assignment 4/cmake-build-debug/CMakeFiles/dfs4.dir
+/mnt/c/Users/goshe/Personal/NUS Matters/Y3S2/ECEN5273/Assignment/Assignment 4/cmake-build-debug/CMakeFiles/edit_cache.dir
+/mnt/c/Users/goshe/Personal/NUS Matters/Y3S2/ECEN5273/Assignment/Assignment 4/cmake-build-debug/CMakeFiles/dfs1.dir
+/mnt/c/Users/goshe/Personal/NUS Matters/Y3S2/ECEN5273/Assignment/Assignment 4/cmake-build-debug/CMakeFiles/dfc.dir
+/mnt/c/Users/goshe/Personal/NUS Matters/Y3S2/ECEN5273/Assignment/Assignment 4/cmake-build-debug/CMakeFiles/dfs2.dir
+/mnt/c/Users/goshe/Personal/NUS Matters/Y3S2/ECEN5273/Assignment/Assignment 4/cmake-build-debug/CMakeFiles/dfs3.dir
